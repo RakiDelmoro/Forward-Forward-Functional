@@ -13,10 +13,8 @@ def forward_forward_network(feature_layers, activation_function, lr, threshold, 
 
     def training(positive_data, negative_data):
         positive_phase, negative_phase = positive_data, negative_data
-        for i, (forward_pass_training, _) in enumerate(layers):
-            positive_phase, negative_phase, avg_loss = forward_pass_training(positive_phase, negative_phase)
-            print(f"Layer {i} average loss: {avg_loss}")
-        # print(f"Finish train each layer!")
+        for forward_pass_training, _ in layers:
+            positive_phase, negative_phase = forward_pass_training(positive_phase, negative_phase)
 
     def predicting(x: torch.Tensor):
         goodness_per_label = []
@@ -28,8 +26,13 @@ def forward_forward_network(feature_layers, activation_function, lr, threshold, 
                 goodness = goodness + [input_for_layer.pow(2).mean(1)]
             goodness_per_label += [sum(goodness).unsqueeze(1)]
         goodness_per_label = torch.cat(goodness_per_label, dim=1)
-        character_probability = goodness_per_label.max(dim=-1)[0].item()
-        indices = goodness_per_label.argmax(dim=-1).item()
-        return character_probability, indices
+        in_training = x.shape[0] > 1
+        if in_training:
+            return goodness_per_label.argmax(dim=-1)
+        else:
+            indices = goodness_per_label.argmax(dim=-1).item()
+            character_probability = goodness_per_label.max(dim=-1)[0].item()
+
+            return goodness_per_label.argmax(dim=-1), indices, character_probability
     
     return training, predicting
