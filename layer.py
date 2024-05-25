@@ -1,5 +1,6 @@
 import math
 import torch
+import statistics
 import torch.nn as nn
 from torch import empty
 from torch.nn import Parameter
@@ -26,6 +27,7 @@ def ff_layer(in_features: int, out_features: int, activation_function: torch.nn.
     layer_parameter.extend([weight, bias])
     optimizer = torch.optim.Adam(layer_parameter, learning_rate)
     def propagate_positive_and_negative_phase_in_layer(positive_data, negative_data):
+        layer_losses_each_epoch = []
         for _ in range(epochs):
             positive_phase = forward_pass(positive_data)
             negative_phase = forward_pass(negative_data)
@@ -37,8 +39,9 @@ def ff_layer(in_features: int, out_features: int, activation_function: torch.nn.
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-            print(f"Loss: {loss.item()}")
+            layer_losses_each_epoch.append(loss.item())
+        average_layer_loss = statistics.fmean(layer_losses_each_epoch) 
         # detach output layer from gradient flow to next layer
-        return forward_pass(positive_data).detach(), forward_pass(negative_data).detach()
+        return forward_pass(positive_data).detach(), forward_pass(negative_data).detach(), average_layer_loss
 
     return propagate_positive_and_negative_phase_in_layer, forward_pass
