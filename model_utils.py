@@ -1,5 +1,5 @@
-import numpy as np
 import statistics
+import numpy as np
 from features import GREEN, RESET, RED
 from utils import manipulate_pixel_base_on_label, get_wrong_label
 
@@ -33,33 +33,38 @@ def train(train_forward_pass, predict_forward_pass, training_loader):
         negative_data = manipulate_pixel_base_on_label(batched_image=train_image, batched_label=label_for_negative_data, num_classes=10)
         
         train_forward_pass(positive_data, negative_data) # Training layers
-        
-        loss = 1.0 - predict_forward_pass(train_image).eq(train_expected).float().mean().item()
+        model_prediction = predict_forward_pass(train_image).argmax(dim=-1)
+        loss = 1.0 - model_prediction.eq(train_expected).float().mean().item()
         train_loss += loss
 
     return train_loss / len(training_loader)
 
 def validate(predict_forward_pass, validation_loader):
     print("Validating...")
-    list_of_digit_probabilities = []
+    list_of_model_correct_and_wrong_prediction = []
     list_of_correct_prediction = []
     list_of_wrong_prediction = []
     validate_loss = 0.0
     for image, expected in validation_loader:
-        _, predicted, probability = predict_forward_pass(image)
-        list_of_digit_probabilities.append(probability)
-        if predicted == expected.item():
-            predicted_and_expected = {'predicted': predicted, 'expected': expected.item()}
+        model_output_score = predict_forward_pass(image)
+        model_prediction = model_output_score.argmax(dim=-1)
+        # check model prediction and compare to expected 1 if model prediction is correct otherwise 0
+        model_prediction_correct_or_wrong = model_prediction.eq(expected).float().item()
+
+        list_of_model_correct_and_wrong_prediction.append(model_prediction_correct_or_wrong)
+        if model_prediction.item() == expected.item():
+            predicted_and_expected = {'predicted': model_prediction.item(), 'expected': expected.item()}
             list_of_correct_prediction.append(predicted_and_expected)
         else:
-            predicted_and_expected = {'predicted': predicted, 'expected': expected.item()}
+            predicted_and_expected = {'predicted': model_prediction.item(), 'expected': expected.item()}
             list_of_wrong_prediction.append(predicted_and_expected)
-        loss = 1.0 - predict_forward_pass(image)[0].eq(expected).float().mean().item()
+
+        loss = 1.0 - model_prediction.eq(expected).float().mean().item()
         validate_loss += loss
 
     print_correct_prediction(list_of_correct_prediction, 5)
     print_wrong_prediction(list_of_wrong_prediction, 5)
-    print_percentile_of_correct_probabilities(list_of_digit_probabilities)
+    print_percentile_of_correct_probabilities(list_of_model_correct_and_wrong_prediction)
     
     return validate_loss / len(validation_loader)
 
