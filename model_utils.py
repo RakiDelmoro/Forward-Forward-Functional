@@ -1,3 +1,4 @@
+import torch
 import statistics
 import numpy as np
 from features import GREEN, RESET, RED
@@ -41,17 +42,16 @@ def train(train_forward_pass, predict_forward_pass, training_loader):
 
 def validate(predict_forward_pass, validation_loader):
     print("Validating...")
-    list_of_model_correct_and_wrong_prediction = []
+    list_of_prediction_probability = []
     list_of_correct_prediction = []
     list_of_wrong_prediction = []
     validate_loss = 0.0
     for image, expected in validation_loader:
         model_output_score = predict_forward_pass(image)
         model_prediction = model_output_score.argmax(dim=-1)
-        # check model prediction and compare to expected 1 if model prediction is correct otherwise 0
-        model_prediction_correct_or_wrong = model_prediction.eq(expected).float().item()
+        probability_of_model_prediction = torch.nn.functional.softmax(model_output_score, dim=-1).max().item()
 
-        list_of_model_correct_and_wrong_prediction.append(model_prediction_correct_or_wrong)
+        list_of_prediction_probability.append(probability_of_model_prediction)
         if model_prediction.item() == expected.item():
             predicted_and_expected = {'predicted': model_prediction.item(), 'expected': expected.item()}
             list_of_correct_prediction.append(predicted_and_expected)
@@ -64,7 +64,7 @@ def validate(predict_forward_pass, validation_loader):
 
     print_correct_prediction(list_of_correct_prediction, 5)
     print_wrong_prediction(list_of_wrong_prediction, 5)
-    print_percentile_of_correct_probabilities(list_of_model_correct_and_wrong_prediction)
+    print_percentile_of_correct_probabilities(list_of_prediction_probability)
     
     return validate_loss / len(validation_loader)
 
