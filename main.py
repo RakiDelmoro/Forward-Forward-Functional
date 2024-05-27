@@ -9,7 +9,7 @@ from torch.utils.data import TensorDataset, DataLoader
 from model_utils import runner
 
 def main():
-    EPOCHS = 5
+    EPOCHS = 1
     LAYER_EPOCHS = 100
     BATCH_SIZE = 2048
     LEARNING_RATE = 0.01
