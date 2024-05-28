@@ -9,7 +9,7 @@ from torch.utils.data import TensorDataset, DataLoader
 from model_utils import runner
 
 def main():
-    EPOCHS = 1
+    EPOCHS = 5
     LAYER_EPOCHS = 100
     BATCH_SIZE = 2048
     LEARNING_RATE = 0.01
@@ -26,7 +26,9 @@ def main():
     train_loader = DataLoader(TensorDataset(training_input, training_expected), batch_size=BATCH_SIZE, shuffle=True)
     validation_loader = DataLoader(TensorDataset(validation_input, validation_expected), batch_size=1, shuffle=True)
 
-    model_training, model_predicting = forward_forward_network(feature_layers=[input_feature_size, 2000, 2000], activation_function=torch.nn.functional.relu, lr=LEARNING_RATE, threshold=2.0, epochs=LAYER_EPOCHS, device="cuda")
-    runner(model_training, model_predicting, train_loader, validation_loader, EPOCHS)
+    hidden_layers = [100] * 99
+    feature_sizes = [input_feature_size] + hidden_layers
+    model_runner = forward_forward_network(feature_layers=feature_sizes, activation_function=torch.nn.functional.relu, lr=LEARNING_RATE, threshold=2.0, epochs=LAYER_EPOCHS, device="cuda")
+    model_runner(train_loader, validation_loader)
 
 main()
