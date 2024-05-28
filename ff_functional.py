@@ -39,7 +39,6 @@ def forward_forward_network(feature_layers, activation_function, lr, threshold, 
             positive_data, negative_data = layer(positive_data).detach(), layer(negative_data).detach()
 
     def predicting(x: torch.Tensor) -> torch.Tensor:
-        print("Validating...")
         goodness_per_label = []
         for label in range(10):
             input_for_layer = manipulate_pixel_base_on_label(x, label, 10)
