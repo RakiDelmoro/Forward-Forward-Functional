@@ -1,12 +1,9 @@
 import gzip
 import torch
 import pickle
-from utils import manipulate_pixel_base_on_label, get_wrong_label
-from ff_functional import forward_forward_network
 from features import tensor
-from functools import partial
+from ff_functional import forward_forward_network
 from torch.utils.data import TensorDataset, DataLoader
-from model_utils import runner
 
 def main():
     EPOCHS = 5
@@ -28,7 +25,7 @@ def main():
 
     hidden_layers = [100] * 99
     feature_sizes = [input_feature_size] + hidden_layers
-    model_runner = forward_forward_network(feature_layers=feature_sizes, activation_function=torch.nn.functional.relu, lr=LEARNING_RATE, threshold=2.0, epochs=LAYER_EPOCHS, device="cuda")
+    model_runner = forward_forward_network(feature_layers=[784, 2000, 2000], activation_function=torch.nn.functional.relu, lr=LEARNING_RATE, threshold=2.0, epochs=LAYER_EPOCHS, device="cuda")
     model_runner(train_loader, validation_loader)
 
 main()
