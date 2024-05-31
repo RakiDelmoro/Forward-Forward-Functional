@@ -1,10 +1,10 @@
 import torch
 import statistics
 from layer import ff_layer
-from utils import manipulate_pixel_base_on_label, get_wrong_label
+from utils import manipulate_pixel_base_on_label
 from model_utils import print_correct_prediction, print_wrong_prediction, print_percentile_of_correct_probabilities
 
-def forward_forward_network(feature_layers, activation_function, lr, threshold, epochs, device):
+def forward_forward_network(feature_layers, activation_function, lr, threshold, device):
     layers = []
     layers_parameters = []
 
@@ -15,22 +15,11 @@ def forward_forward_network(feature_layers, activation_function, lr, threshold, 
         layers.append(layer)
         layers_parameters.extend([[w,b]])
 
-    def train_each_batch(dataloader, layer_index, layer, first_layer, epochs):
-        layer_optimizer = torch.optim.Adam(layers_parameters[layer_index], lr)
+    def train_each_batch(dataloader, layer_optimizer, layer_index, layer, epochs):
         list_of_batch_loss = []
-        for image, label in dataloader:
-            positive_data = manipulate_pixel_base_on_label(image, label, 10)
-            label_for_negative_data = get_wrong_label(label, 10)
-            negative_data = manipulate_pixel_base_on_label(image, label_for_negative_data, 10)
-            first_layer = layer_index == 0
-            if first_layer:
-                positive_output_features = layer(positive_data)
-                negative_output_features = layer(negative_data)
-            else:
-                previous_layer_positive_features = layers[0](positive_data).detach()
-                previous_layer_negative_features = layers[0](negative_data).detach()
-                positive_output_features = layer(previous_layer_positive_features)
-                negative_output_features = layer(previous_layer_negative_features)
+        for positive_data, negative_data in dataloader:
+            positive_output_features = layer(positive_data)
+            negative_output_features = layer(negative_data)
             squared_average_activation_positive_phase = positive_output_features.pow(2).mean(dim=1)
             squared_average_activation_negative_phase = negative_output_features.pow(2).mean(dim=1)
             layer_loss = torch.log(1 + torch.exp(torch.cat([
@@ -40,11 +29,21 @@ def forward_forward_network(feature_layers, activation_function, lr, threshold, 
             layer_optimizer.zero_grad()
             layer_loss.backward()
             layer_optimizer.step()
-            # print(f'\r Epoch: {epochs} item in a batch: {b} Training layer: {layer_index+1} loss: {layer_loss}', end='', flush=True)
+            print(f'\r Epoch: {epochs} Training layer: {layer_index+1} loss: {layer_loss}', end='', flush=True)
             list_of_batch_loss.append(layer_loss.item())
         average_loss_for_whole_batch = statistics.fmean(list_of_batch_loss)
+        print()
         print(f'\r Epoch: {epochs} average loss for each batch: {average_loss_for_whole_batch}', end='', flush=True)
         return average_loss_for_whole_batch
+    
+    def run_once(dataloader, layer):
+        previous_output = []
+        for positive_data, negative_data in dataloader:
+            positive_output_features = layer(positive_data).detach()
+            negative_output_features = layer(negative_data).detach()
+            previous_output.append((positive_output_features, negative_output_features))
+
+        return previous_output
 
     def training_layer(data_loader):
         print("Training...")
@@ -52,8 +51,9 @@ def forward_forward_network(feature_layers, activation_function, lr, threshold, 
             best_loss = None
             bad_epoch = 0
             current_epoch = 0
+            optimizer = torch.optim.Adam(layers_parameters[i], lr)
             while True:
-                average_loss = train_each_batch(dataloader=data_loader, layer_index=i, layer=layer, first_layer=layers[0], epochs=current_epoch)
+                average_loss = train_each_batch(dataloader=data_loader, layer_optimizer=optimizer, layer_index=i, layer=layer, epochs=current_epoch)
                 if best_loss is None:
                     best_loss = average_loss
                 elif average_loss < best_loss:
@@ -62,10 +62,13 @@ def forward_forward_network(feature_layers, activation_function, lr, threshold, 
                 else:
                     bad_epoch += 1
                 # patient amount
-                if bad_epoch > 5: break
-
+                if bad_epoch > 5:
+                    print()
+                    print(f"Done training layer: {i} takes {current_epoch} loss: {average_loss}")
+                    data_loader = run_once(data_loader, layer)
+                    break
                 current_epoch +=1
-    
+
     def predicting(x: torch.Tensor) -> torch.Tensor:
         goodness_per_label = []
         for label in range(10):
@@ -81,6 +84,7 @@ def forward_forward_network(feature_layers, activation_function, lr, threshold, 
         return prediction_scores
 
     def validating(data_loader):
+        print('validating...')
         list_of_prediction_probability = []
         list_of_correct_prediction = []
         list_of_wrong_prediction = []
