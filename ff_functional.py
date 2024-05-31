@@ -16,7 +16,7 @@ def forward_forward_network(feature_layers, activation_function, lr, threshold, 
         layers_parameters.extend([[w,b]])
 
     def train_each_batch(dataloader, layer_optimizer, layer_index, layer, epochs):
-        list_of_batch_loss = []
+        losses_of_each_batch = []
         for positive_data, negative_data in dataloader:
             positive_output_features = layer(positive_data)
             negative_output_features = layer(negative_data)
@@ -30,8 +30,8 @@ def forward_forward_network(feature_layers, activation_function, lr, threshold, 
             layer_loss.backward()
             layer_optimizer.step()
             print(f'\r Epoch: {epochs} Training layer: {layer_index+1} loss: {layer_loss}', end='', flush=True)
-            list_of_batch_loss.append(layer_loss.item())
-        average_loss_for_whole_batch = statistics.fmean(list_of_batch_loss)
+            losses_of_each_batch.append(layer_loss.item())
+        average_loss_for_whole_batch = statistics.fmean(losses_of_each_batch)
         print()
         print(f'\r Epoch: {epochs} average loss for each batch: {average_loss_for_whole_batch}', end='', flush=True)
         return average_loss_for_whole_batch
