@@ -5,11 +5,11 @@ import pickle
 from features import tensor
 from torch.utils.data import TensorDataset
 
-def get_training_data(all_image, all_label, num_classes=10):
+def get_training_data(all_images, all_labels, num_classes=10):
     training_data = []
-    for index in range(all_image.shape[0]):
-        image = all_image[index]
-        label = all_label[index]
+    for index in range(all_images.shape[0]):
+        image = all_images[index]
+        label = all_labels[index]
         wrong_label = get_wrong_label(label, num_classes)
         positive_data = combine_label_in_image(image, label, num_classes)
         negative_data = combine_label_in_image(image, wrong_label)

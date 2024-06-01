@@ -29,11 +29,11 @@ def forward_forward_network(feature_layers, activation_function, lr, threshold, 
             layer_optimizer.zero_grad()
             layer_loss.backward()
             layer_optimizer.step()
-            print(f'\r Epoch: {epochs} Training layer: {layer_index+1} loss: {layer_loss}', end='', flush=True)
+            # print(f'\r Epoch: {epochs} Training layer: {layer_index+1} loss: {layer_loss}', end='', flush=True)
             losses_of_each_batch.append(layer_loss.item())
         average_loss_for_whole_batch = statistics.fmean(losses_of_each_batch)
-        print()
-        print(f'\r Epoch: {epochs} average loss for each batch: {average_loss_for_whole_batch}', end='', flush=True)
+        # print()
+        print(f'\r Epoch: {epochs} Layer: {layer_index+1} average loss for each batch: {round(average_loss_for_whole_batch, 5)}', end='', flush=True)
         return average_loss_for_whole_batch
     
     def run_once(dataloader, layer):
@@ -54,17 +54,24 @@ def forward_forward_network(feature_layers, activation_function, lr, threshold, 
             optimizer = torch.optim.Adam(layers_parameters[i], lr)
             while True:
                 average_loss = train_each_batch(dataloader=data_loader, layer_optimizer=optimizer, layer_index=i, layer=layer, epochs=current_epoch)
+                loss_round_off = round(average_loss, 5)
                 if best_loss is None:
-                    best_loss = average_loss
-                elif average_loss < best_loss:
-                    best_loss = average_loss
+                    best_loss = loss_round_off
+
+                elif loss_round_off < best_loss:
+                    num_decrease = round(best_loss - loss_round_off, 5)
+                    threshold_loss = loss_round_off * 0.01
+                    if num_decrease <= threshold_loss:
+                        break
+                    
+                    best_loss = loss_round_off
                     bad_epoch = 0
                 else:
                     bad_epoch += 1
                 # patient amount
                 if bad_epoch > 5:
                     print()
-                    print(f"Done training layer: {i} takes {current_epoch} loss: {average_loss}")
+                    print(f"Done training layer: {i} takes {current_epoch} loss: {loss_round_off}")
                     data_loader = run_once(data_loader, layer)
                     break
                 current_epoch +=1

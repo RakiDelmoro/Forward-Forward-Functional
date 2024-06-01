@@ -1,13 +1,11 @@
-import gzip
 import torch
-import pickle
 from features import tensor
 from data_utils import load_data_to_memory, get_training_data, get_validation_data
 from ff_functional import forward_forward_network
 from torch.utils.data import TensorDataset, DataLoader
 
 def main():
-    BATCH_SIZE = 2048
+    BATCH_SIZE = 4096
     LEARNING_RATE = 0.01
     WIDTH = 28
     HEIGHT = 28
