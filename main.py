@@ -19,9 +19,9 @@ def main():
     train_loader = DataLoader(training_data, batch_size=BATCH_SIZE, shuffle=True)
     validation_loader = DataLoader(validation_data, batch_size=1, shuffle=True)
 
-    hidden_layers = [100] * 99
+    hidden_layers = [100] * 100
     feature_sizes = [input_feature_size] + hidden_layers
-    model_runner = forward_forward_network(feature_layers=[784, 2000, 2000], activation_function=torch.nn.functional.relu, lr=LEARNING_RATE, threshold=2.0, device="cuda")
+    model_runner = forward_forward_network(feature_layers=feature_sizes, activation_function=torch.nn.functional.relu, lr=LEARNING_RATE, threshold=2.0, device="cuda")
     model_runner(train_loader, validation_loader)
 
 main()

@@ -57,13 +57,7 @@ def forward_forward_network(feature_layers, activation_function, lr, threshold, 
                 loss_round_off = round(average_loss, 5)
                 if best_loss is None:
                     best_loss = loss_round_off
-
                 elif loss_round_off < best_loss:
-                    num_decrease = round(best_loss - loss_round_off, 5)
-                    threshold_loss = loss_round_off * 0.01
-                    if num_decrease <= threshold_loss:
-                        break
-                    
                     best_loss = loss_round_off
                     bad_epoch = 0
                 else:
@@ -71,7 +65,7 @@ def forward_forward_network(feature_layers, activation_function, lr, threshold, 
                 # patient amount
                 if bad_epoch > 5:
                     print()
-                    print(f"Done training layer: {i} takes {current_epoch} loss: {loss_round_off}")
+                    print(f"Done training layer: {i+1} takes {current_epoch} loss: {loss_round_off}")
                     data_loader = run_once(data_loader, layer)
                     break
                 current_epoch +=1
