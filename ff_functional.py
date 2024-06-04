@@ -48,27 +48,33 @@ def forward_forward_network(feature_layers, activation_function, lr, threshold, 
     def training_layer(data_loader):
         print("Training...")
         for i, layer in enumerate(layers):
-            best_loss = None
             bad_epoch = 0
             current_epoch = 0
             optimizer = torch.optim.Adam(layers_parameters[i], lr)
+            best_loss = None
+            previous_loss = None
             while True:
-                average_loss = train_each_batch(dataloader=data_loader, layer_optimizer=optimizer, layer_index=i, layer=layer, epochs=current_epoch)
-                loss_round_off = round(average_loss, 5)
+                current_loss = train_each_batch(dataloader=data_loader, layer_optimizer=optimizer, layer_index=i, layer=layer, epochs=current_epoch)
                 if best_loss is None:
-                    best_loss = loss_round_off
-                elif loss_round_off < best_loss:
-                    best_loss = loss_round_off
-                    bad_epoch = 0
+                    best_loss = current_loss
+                elif current_loss < best_loss:
+                    best_loss = current_loss
+                    if previous_loss is not None:
+                        if abs((previous_loss / current_loss) - 1) < 0.01:
+                            bad_epoch += 1
+                        else:
+                            bad_epoch = 0
                 else:
                     bad_epoch += 1
                 # patient amount
                 if bad_epoch > 5:
                     print()
-                    print(f"Done training layer: {i+1} takes {current_epoch} loss: {loss_round_off}")
+                    print(f"Done training layer: {i+1} takes {current_epoch} loss: {current_loss}")
                     data_loader = run_once(data_loader, layer)
                     break
+                
                 current_epoch +=1
+                previous_loss = current_loss
 
     def predicting(x: torch.Tensor) -> torch.Tensor:
         goodness_per_label = []
