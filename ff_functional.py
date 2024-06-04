@@ -60,7 +60,7 @@ def forward_forward_network(feature_layers, activation_function, lr, threshold, 
                 elif current_loss < best_loss:
                     best_loss = current_loss
                     if previous_loss is not None:
-                        if abs((previous_loss / current_loss) - 1) < 0.01:
+                        if abs((previous_loss / current_loss) - 1) < 0.001:
                             bad_epoch += 1
                         else:
                             bad_epoch = 0
