@@ -76,41 +76,42 @@ def forward_forward_network(feature_layers, activation_function, lr, threshold, 
                 current_epoch +=1
                 previous_loss = current_loss
 
-    def predicting(x: torch.Tensor) -> torch.Tensor:
-        goodness_per_label = []
-        for label in range(10):
-            input_for_layer = manipulate_pixel_base_on_label(x, label, 10)
+    def predicting(batched_images_with_combine_labels: torch.Tensor) -> torch.Tensor:
+        batched_goodness_per_label = []
+        for combined_label_in_image in batched_images_with_combine_labels:
+            input_for_layer = combined_label_in_image
             layers_goodness = []
             for layer in layers:
                 layer_output = layer(input_for_layer)
                 calculate_layer_goodness = layer_output.pow(2).mean(1)
                 layers_goodness.append(calculate_layer_goodness)
                 input_for_layer = layer_output
-            goodness_per_label.append(sum(layers_goodness).unsqueeze(1))
-        prediction_scores = torch.cat(goodness_per_label, dim=1)
+            summed_up_layer_goodness = sum(layers_goodness)
+            batched_layer_goodness = torch.concat([summed_up_layer_goodness])
+            batched_goodness_per_label.append(batched_layer_goodness)
+        prediction_scores = torch.cat(batched_goodness_per_label, dim=1)
         return prediction_scores
 
-    def validating(data_loader):
+    def validating(batched_image, batched_label):
         print('validating...')
         predictions_probabilities = []
         correct_predictions = []
         wrong_predictions = []
         model_predictions = []
-        for test_image, test_label in data_loader:
-            prediction_score = predicting(test_image)
-            model_prediction = prediction_score.argmax()
-            probability = torch.nn.functional.softmax(prediction_score, dim=-1).max().item()
-            
-            correct_or_wrong = model_prediction.eq(test_label).int().item()
-            model_predictions.append(correct_or_wrong)
+        prediction_score = predicting(batched_image)
+        model_prediction = prediction_score.argmax()
+        probability = torch.nn.functional.softmax(prediction_score, dim=-1).max().item()
+        
+        correct_or_wrong = model_prediction.eq(test_label).int().item()
+        model_predictions.append(correct_or_wrong)
 
-            predictions_probabilities.append(probability)
-            if model_prediction.item() == test_label.item():
-                predicted_and_expected = {'predicted': model_prediction.item(), 'expected': test_label.item()}
-                correct_predictions.append(predicted_and_expected)
-            else:
-                predicted_and_expected = {'predicted': model_prediction.item(), 'expected': test_label.item()}
-                wrong_predictions.append(predicted_and_expected)
+        predictions_probabilities.append(probability)
+        if model_prediction.item() == test_label.item():
+            predicted_and_expected = {'predicted': model_prediction.item(), 'expected': test_label.item()}
+            correct_predictions.append(predicted_and_expected)
+        else:
+            predicted_and_expected = {'predicted': model_prediction.item(), 'expected': test_label.item()}
+            wrong_predictions.append(predicted_and_expected)
 
         print_correct_prediction(correct_predictions, 5)
         print_wrong_prediction(wrong_predictions, 5)
@@ -122,8 +123,8 @@ def forward_forward_network(feature_layers, activation_function, lr, threshold, 
         wrong_percentage = (wrong_prediction_count / len(model_predictions)) * 100
         print(f"Correct percentage: {round(correct_percentage, 1)} Wrong percentage: {round(wrong_percentage, 1)}")
     
-    def runner(training_loader, validation_loader):
-        training_layer(training_loader)
-        validating(validation_loader)
+    def runner(training_loader, test_image, test_label):
+        # training_layer(training_loader)
+        validating(test_image, test_label)
 
     return runner
