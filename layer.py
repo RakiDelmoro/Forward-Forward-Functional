@@ -21,6 +21,7 @@ def ff_layer(in_features: int, out_features: int, activation_function: torch.nn.
 
     def forward_pass(x: torch.Tensor) -> torch.Tensor:
         x = x / (x.norm(2, 1, keepdim=True) + 1e-4)
+        
         return activation_function(linear_computation(x))
     
     return forward_pass, weight, bias

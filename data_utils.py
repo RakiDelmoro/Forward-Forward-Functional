@@ -5,6 +5,17 @@ import pickle
 from features import tensor
 from torch.utils.data import TensorDataset
 
+def combine_label_in_image(image, label, num_classes=10):
+    clone_image = image.copy()
+    clone_image[:num_classes] = 0.0
+    clone_image[label] = image.max()
+    return clone_image
+
+def get_wrong_label(label, num_classes=10):
+    indices_to_use = list(range(num_classes))
+    indices_to_use.remove(label)
+    return random.choice(indices_to_use)
+
 def get_training_data(all_images, all_labels, num_classes=10):
     training_data = []
     for index in range(all_images.shape[0]):
@@ -17,20 +28,20 @@ def get_training_data(all_images, all_labels, num_classes=10):
 
     return training_data
 
-def combine_label_in_image(image, label, num_classes=10):
-    clone_image = image.copy()
-    clone_image[:num_classes] = 0.0
-    clone_image[label] = image.max()
-    return clone_image
+def get_validation_data(all_image, all_label, num_classes=10):
+    validation_data = []
+    for label in range(num_classes):
+        label_combine_in_images = []
+        for each in range(all_image.shape[0]):
+            image = all_image[each]
+            imabe_and_label_combine = combine_label_in_image(image, label)
+            label_combine_in_images.append((torch.tensor(imabe_and_label_combine, device="cuda")))
 
-def get_wrong_label(label, num_classes=10):
-    indices_to_use = list(range(num_classes))
-    indices_to_use.remove(label)
-    return random.choice(indices_to_use)
+        stacked_samples = torch.stack(label_combine_in_images)
+        validation_data.append(stacked_samples)
 
-def get_validation_data(image, label):
-    image_tensor, label_tensor = map(tensor, (image, label))
-    return TensorDataset(image_tensor, label_tensor)
+    labels_as_tensor = torch.tensor(all_label, device="cuda")
+    return validation_data, labels_as_tensor
 
 def load_data_to_memory(filename: str):
     with (gzip.open(filename, 'rb')) as file:
