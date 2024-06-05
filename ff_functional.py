@@ -4,7 +4,7 @@ from layer import ff_layer
 from utils import manipulate_pixel_base_on_label
 from model_utils import print_correct_prediction, print_wrong_prediction, print_percentile_of_correct_probabilities
 
-def forward_forward_network(feature_layers, activation_function, lr, threshold, device):
+def forward_forward_network(feature_layers, activation_function, lr, threshold, patient_amount, device):
     layers = []
     layers_parameters = []
 
@@ -33,7 +33,7 @@ def forward_forward_network(feature_layers, activation_function, lr, threshold, 
             losses_of_each_batch.append(layer_loss.item())
         average_loss_for_whole_batch = statistics.fmean(losses_of_each_batch)
         # print()
-        print(f'\r Epoch: {epochs} Layer: {layer_index+1} average loss for each batch: {round(average_loss_for_whole_batch, 5)}', end='', flush=True)
+        # print(f'\r Epoch: {epochs} Layer: {layer_index+1} average loss for each batch: {round(average_loss_for_whole_batch, 5)}', end='', flush=True)
         return average_loss_for_whole_batch
     
     def run_once(dataloader, layer):
@@ -66,8 +66,8 @@ def forward_forward_network(feature_layers, activation_function, lr, threshold, 
                             bad_epoch = 0
                 else:
                     bad_epoch += 1
-                # patient amount
-                if bad_epoch > 5:
+
+                if bad_epoch > patient_amount:
                     print()
                     print(f"Done training layer: {i+1} takes {current_epoch} loss: {current_loss}")
                     data_loader = run_once(data_loader, layer)
@@ -92,29 +92,38 @@ def forward_forward_network(feature_layers, activation_function, lr, threshold, 
 
     def validating(data_loader):
         print('validating...')
-        list_of_prediction_probability = []
-        list_of_correct_prediction = []
-        list_of_wrong_prediction = []
+        predictions_probabilities = []
+        correct_predictions = []
+        wrong_predictions = []
+        model_predictions = []
         for test_image, test_label in data_loader:
             prediction_score = predicting(test_image)
             model_prediction = prediction_score.argmax()
             probability = torch.nn.functional.softmax(prediction_score, dim=-1).max().item()
+            
+            correct_or_wrong = model_prediction.eq(test_label).int().item()
+            model_predictions.append(correct_or_wrong)
 
-            list_of_prediction_probability.append(probability)
+            predictions_probabilities.append(probability)
             if model_prediction.item() == test_label.item():
                 predicted_and_expected = {'predicted': model_prediction.item(), 'expected': test_label.item()}
-                list_of_correct_prediction.append(predicted_and_expected)
+                correct_predictions.append(predicted_and_expected)
             else:
                 predicted_and_expected = {'predicted': model_prediction.item(), 'expected': test_label.item()}
-                list_of_wrong_prediction.append(predicted_and_expected)
+                wrong_predictions.append(predicted_and_expected)
 
-        print_correct_prediction(list_of_correct_prediction, 5)
-        print_wrong_prediction(list_of_wrong_prediction, 5)
-        print_percentile_of_correct_probabilities(list_of_prediction_probability)
-
+        print_correct_prediction(correct_predictions, 5)
+        print_wrong_prediction(wrong_predictions, 5)
+        print_percentile_of_correct_probabilities(predictions_probabilities)
+        
+        correct_prediction_count = model_predictions.count(1)
+        wrong_prediction_count = model_predictions.count(0)
+        correct_percentage = (correct_prediction_count / len(model_predictions)) * 100
+        wrong_percentage = (wrong_prediction_count / len(model_predictions)) * 100
+        print(f"Correct percentage: {round(correct_percentage, 1)} Wrong percentage: {round(wrong_percentage, 1)}")
+    
     def runner(training_loader, validation_loader):
         training_layer(training_loader)
-        print()
         validating(validation_loader)
 
     return runner
