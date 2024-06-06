@@ -2,8 +2,6 @@ import torch
 import random
 import gzip
 import pickle
-from features import tensor
-from torch.utils.data import TensorDataset
 
 def combine_label_in_image(image, label, num_classes=10):
     clone_image = image.copy()
@@ -29,7 +27,7 @@ def get_training_data(all_images, all_labels, num_classes=10):
     return training_data
 
 def get_validation_data(all_image, all_label, num_classes=10):
-    validation_data = []
+    combine_image_and_labels = []
     for label in range(num_classes):
         label_combine_in_images = []
         for each in range(all_image.shape[0]):
@@ -37,11 +35,11 @@ def get_validation_data(all_image, all_label, num_classes=10):
             imabe_and_label_combine = combine_label_in_image(image, label)
             label_combine_in_images.append((torch.tensor(imabe_and_label_combine, device="cuda")))
 
-        stacked_samples = torch.stack(label_combine_in_images)
-        validation_data.append(stacked_samples)
+        stacked_image_based_on_label = torch.stack(label_combine_in_images)
+        combine_image_and_labels.append(stacked_image_based_on_label)
 
     labels_as_tensor = torch.tensor(all_label, device="cuda")
-    return validation_data, labels_as_tensor
+    return combine_image_and_labels, labels_as_tensor
 
 def load_data_to_memory(filename: str):
     with (gzip.open(filename, 'rb')) as file:
