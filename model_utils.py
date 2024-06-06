@@ -2,7 +2,6 @@ import torch
 import statistics
 import numpy as np
 from features import GREEN, RESET, RED
-from utils import manipulate_pixel_base_on_label, get_wrong_label
 
 def print_correct_prediction(correct_prediction_list, amount_to_print):
     print(f"{GREEN}Correct prediction!{RESET}")

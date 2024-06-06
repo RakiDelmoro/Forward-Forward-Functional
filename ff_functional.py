@@ -31,10 +31,9 @@ def forward_forward_network(feature_layers, activation_function, lr, threshold, 
             losses_of_each_batch.append(layer_loss.item())
         average_loss_for_whole_batch = statistics.fmean(losses_of_each_batch)
         print(f'\r Epoch: {epochs} Layer: {layer_index+1} average loss for each batch: {round(average_loss_for_whole_batch, 5)}', end='', flush=True)
-        print()
         return average_loss_for_whole_batch
     
-    def run_once(dataloader, layer):
+    def forward_pass_once(dataloader, layer):
         previous_output = []
         for positive_data, negative_data in dataloader:
             positive_output_features = layer(positive_data).detach()
@@ -45,14 +44,14 @@ def forward_forward_network(feature_layers, activation_function, lr, threshold, 
 
     def training_layer(data_loader):
         print("Training...")
-        for i, layer in enumerate(layers):
+        for layer_index, layer in enumerate(layers):
             bad_epoch = 0
             current_epoch = 0
-            optimizer = torch.optim.Adam(layers_parameters[i], lr)
+            optimizer = torch.optim.Adam(layers_parameters[layer_index], lr)
             best_loss = None
             previous_loss = None
             while True:
-                current_loss = train_each_batch(dataloader=data_loader, layer_optimizer=optimizer, layer_index=i, layer=layer, epochs=current_epoch)
+                current_loss = train_each_batch(dataloader=data_loader, layer_optimizer=optimizer, layer_index=layer_index, layer=layer, epochs=current_epoch)
                 if best_loss is None:
                     best_loss = current_loss
                 elif current_loss < best_loss:
@@ -67,8 +66,8 @@ def forward_forward_network(feature_layers, activation_function, lr, threshold, 
 
                 if bad_epoch > patient_amount:
                     print()
-                    print(f"Done training layer: {i+1} takes {current_epoch} loss: {current_loss}")
-                    data_loader = run_once(data_loader, layer)
+                    print(f"Done training layer: {layer_index+1}")
+                    data_loader = forward_pass_once(data_loader, layer)
                     break
                 previous_loss = current_loss
                 current_epoch +=1
@@ -80,9 +79,9 @@ def forward_forward_network(feature_layers, activation_function, lr, threshold, 
             layers_goodness = []
             for layer in layers:
                 layer_output = layer(input_for_layer)
-                calculate_layer_goodness = layer_output.pow(2).mean(1)
-                layers_goodness.append(calculate_layer_goodness)
+                layer_goodness = layer_output.pow(2).mean(1)
                 input_for_layer = layer_output
+                layers_goodness.append(layer_goodness)
             batched_layer_goodness = sum(layers_goodness)
             each_item_in_batch_per_label_goodness = batched_layer_goodness.view(batched_layer_goodness.shape[0], 1)
             batched_goodness_per_label.append(each_item_in_batch_per_label_goodness)
@@ -99,19 +98,19 @@ def forward_forward_network(feature_layers, activation_function, lr, threshold, 
         model_predictions = []
         for each_item in range(batched_model_prediction.shape[0]):
             model_prediction = batched_model_prediction[each_item]
-            label = batched_label[each_item]
+            expected = batched_label[each_item]
             digit_predicted = model_prediction.argmax()
             digit_probability = torch.nn.functional.softmax(model_prediction, dim=0).max().item()
             
-            correct_or_wrong = digit_predicted.eq(label).int().item()
+            correct_or_wrong = digit_predicted.eq(expected).int().item()
             model_predictions.append(correct_or_wrong)
 
             predictions_probabilities.append(digit_probability)
-            if digit_predicted.item() == label.item():
-                predicted_and_expected = {'predicted': digit_predicted.item(), 'expected': label.item()}
+            if digit_predicted.item() == expected.item():
+                predicted_and_expected = {'predicted': digit_predicted.item(), 'expected': expected.item()}
                 correct_predictions.append(predicted_and_expected)
             else:
-                predicted_and_expected = {'predicted': digit_predicted.item(), 'expected': label.item()}
+                predicted_and_expected = {'predicted': digit_predicted.item(), 'expected': expected.item()}
                 wrong_predictions.append(predicted_and_expected)
 
         print_correct_prediction(correct_predictions, 5)

@@ -1,6 +1,6 @@
+import gzip
 import torch
 import random
-import gzip
 import pickle
 
 def combine_label_in_image(image, label, num_classes=10):
